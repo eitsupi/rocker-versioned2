@@ -1,0 +1,35 @@
+name: test for build matrix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-json
+        run: |
+          JSON=.github/workflows/buildmatrix/latest.json
+          echo ::set-output name=json::${JSON}
+          echo ${JSON}
+      - id: set-matrix
+        run: |
+          CONTENT=$(jq -r 'tostring' ${{ steps.set-json.outputs.json }})
+          echo ::set-output name=matrix::${CONTENT}
+          echo ${CONTENT}
+
+  build:
+    needs: generate_matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix: ${{fromJson(needs.generate_matrix.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Push latest tagged Docker image
+        if: matrix.r_latest == true
+        run: |
+          echo "${{ matrix.r_version }}"
