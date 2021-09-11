@@ -10,6 +10,16 @@ setup:
 	./build/make-bakejson.R
 	./build/make-matrix.R
 
+test: bake-json-test-all bake-json-test-groups
+
+
+# Test that all targets are in good format.
+bake-json-test/%:
+	docker buildx bake -f $(patsubst %/,%,$(dir $*)) --print $(notdir $*)
+bake-json-test-all: $(foreach json, $(wildcard bakefiles/*.docker-bake.json), $(foreach target, $(shell jq '.target | keys_unsorted | .[]' -r $(json)), bake-json-test/$(json)/$(target)))
+bake-json-test-groups: $(foreach json, $(wildcard bakefiles/*.docker-bake.json), $(foreach target, $(shell jq '.group[] | keys[]' -r $(json)), bake-json-test/$(json)/$(target)))
+
+
 IMAGE_SOURCE ?= https://github.com/rocker-org/rocker-versioned2
 COMMIT_HASH := $(shell git rev-parse HEAD)
 IMAGE_REVISION ?= $(COMMIT_HASH)
